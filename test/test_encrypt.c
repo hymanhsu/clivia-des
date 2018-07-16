@@ -9,7 +9,7 @@
 
 
 void decypt_jni(){
-    const char * cypher_text = "3AA615A2A3552BBEF1FC53246897F507";
+    const char * cypher_text = "3AA615A2A3552BBEF1FC53246897F507\n";
     char * plainText;
     des_decrypt(cypher_text,&plainText);
     print_hex(plainText, strlen(plainText));
@@ -113,8 +113,8 @@ int main(int argc, char** argv){
 	unsigned int iseed = (unsigned int)time(NULL);
 	srand (iseed);
 
-    //decypt_jni();
-    encrypt_and_decrypt();
+    decypt_jni();
+    //encrypt_and_decrypt();
     //decypt_crash_test();
     //encrypt_and_decrypt_short_string(argc,argv);
 

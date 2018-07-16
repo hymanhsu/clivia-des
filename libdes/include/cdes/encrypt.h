@@ -5,6 +5,7 @@
 extern "C" {
 #endif
 
+#include <stddef.h>
 
 void hide_key(unsigned char* source_bytes, size_t source_len, unsigned char* des_key, size_t des_key_len);
 
