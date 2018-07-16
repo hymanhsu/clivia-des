@@ -25,8 +25,7 @@ make
 
 
 # compile libcdesjni.so
-export PYTHONMALLOC=malloc
+# export PYTHONMALLOC=malloc
 cd $cur_dir/ext_python
-python setup.py install
-
+python3 setup.py install
 
