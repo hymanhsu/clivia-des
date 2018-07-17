@@ -16,7 +16,7 @@ static PyObject* pcdes_encrypt(PyObject *self, PyObject *args) {
     des_encrypt((unsigned char *)plainString,strlen(plainString),&cypher_text);
     //printf("cypher_text = [%s]\n",cypher_text);
 
-    //NOTE:千万别用Py_ssize_t，这个数据类型的高位存储的有值，当size_t用的时候，会得到一个非常大的值
+    //NOTE:千万别用Py_ssize_t，Python里这个数据类型的高位存储有值，当size_t用的时候，会得到一个非常大的无符号数
 
     PyObject* result = NULL;
     if(cypher_text){
