@@ -66,18 +66,23 @@ size_t hexs2bin(const char *hex, unsigned char **out)
     char   b2;
     size_t i;
  
-    if (hex == NULL || *hex == '\0' || out == NULL)
+    if (hex == NULL || *hex == '\0' || out == NULL){
+        printf("hex is null \n");
         return 0;
+    }
  
     len = strlen(hex);
-    if (len % 2 != 0)
+    if (len % 2 != 0){
+        printf("hex invalid : [%s]\n",hex);
         return 0;
+    }
     len /= 2;
  
     *out = (unsigned char *)malloc(len);
     memset(*out, 'A', len);
     for (i=0; i<len; i++) {
         if (!hexchr2bin(hex[i*2], &b1) || !hexchr2bin(hex[i*2+1], &b2)) {
+            printf("hexchr2bin failed : [%s]\n",hex);
             return 0;
         }
         (*out)[i] = (b1 << 4) | b2;
