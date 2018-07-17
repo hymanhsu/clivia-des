@@ -1,8 +1,11 @@
-cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 3.0)
 project(ext_python)
 
+set(Python_ADDITIONAL_VERSIONS 3.6.5)
+find_package(PythonLibs)
+include_directories(${PYTHON_INCLUDE_DIRS})
+
 include_directories(
-        /search/odin/anaconda3/include/python3.6m
         ${PROJECT_SOURCE_DIR}/src
         ${PROJECT_SOURCE_DIR}/../libdes/include
 )
@@ -34,4 +37,3 @@ find_path(CDES_HEADER NAMES cdes/encrypt.h PATHS /usr/local/include)
 find_library(CDES_LIB NAMES cdes PATHS /usr/local/lib)
 
 add_library(cdespyt SHARED ${SOURCES})
-target_link_libraries(cdespyt ${CDES_LIB})
