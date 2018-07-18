@@ -192,7 +192,7 @@ void des_encrypt(const unsigned char* input_plain_text, size_t input_len, char**
 {
 
 	if(input_plain_text == NULL || input_len == 0){
-		return NULL;
+		return;
 	}
 
 	COST_START(0);
@@ -211,7 +211,7 @@ void des_decrypt(const char *cypher_text, char** output)
 {
 
 	if(cypher_text == NULL){
-		return NULL;
+		return;
 	}
 
 	// Transfer to binary
