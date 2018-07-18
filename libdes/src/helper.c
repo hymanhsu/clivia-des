@@ -12,6 +12,8 @@
 #include "cdes/hex.h"
 
 
+clock_t cost_time [10] = {0};
+
 #ifdef DEBUG_FLAG
 
 void print_hexstr(const char* msg, unsigned char * str, size_t len){
@@ -47,4 +49,5 @@ void my_debug(const char *fmt, ...)
 }
 
 #endif
+
 

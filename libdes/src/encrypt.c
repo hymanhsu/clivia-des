@@ -11,6 +11,9 @@
 #include "cdes/hex.h"
 #include "cdes/helper.h"
 
+
+COST_RESULT(cost_time,10);
+
 static void insert_byte(unsigned char* source_bytes, size_t source_len, size_t insert_pos, unsigned char byte)
 {
 	for(int pos = source_len - 1; pos > insert_pos; pos--){
@@ -97,11 +100,14 @@ void des_encrypt_with_key(unsigned char * des_key,const unsigned char* input_pla
 	print_hexstr("input_plain_text",input_plain_text,input_len);
 	print_hexstr("des_key",des_key,DES_KEY_SIZE);
 
+	COST_START(1);
 	// Generate DES key set
 	key_set key_sets [ DES_KEY_SET_SIZE ];
 	memset(key_sets,0,DES_KEY_SET_SIZE*sizeof(key_set));
 	generate_sub_keys(des_key, key_sets);
 	print_hexstr("key_sets",key_sets,DES_KEY_SET_SIZE * sizeof(key_set));
+	COST_END(1);
+    COST_ACCUM(cost_time,1);
 
     // DES encrypt
 	my_debug("input_len = %d\n",input_len);
@@ -114,6 +120,7 @@ void des_encrypt_with_key(unsigned char * des_key,const unsigned char* input_pla
 	unsigned long output_len = DES_KEY_SIZE * number_of_blocks + ((padding==DES_KEY_SIZE)?DES_KEY_SIZE:0);
 	my_debug("output_len = %d\n",output_len);
 
+	COST_START(2);
 	unsigned char data_block [DES_KEY_SIZE];
 	unsigned char processed_block [DES_KEY_SIZE];
 	//output_data长度 = blocks需要的字节数 + padding需要的字节数 + 插入main key需要的字节数
@@ -161,12 +168,20 @@ void des_encrypt_with_key(unsigned char * des_key,const unsigned char* input_pla
 	my_debug("nread = %d\n",nread);
 	my_debug("bytes_written = %d\n",bytes_written);
 	print_hexstr("ouput_data",output_data,output_len+DES_KEY_SIZE);
+	COST_END(2);
+    COST_ACCUM(cost_time,2);
 
+	COST_START(3);
 	// Hide main key into cypher text
 	hide_key(output_data, output_len+DES_KEY_SIZE, des_key, DES_KEY_SIZE);
+	COST_END(3);
+    COST_ACCUM(cost_time,3);
 
+	COST_START(4);
 	// Transfer to hex
 	bin2hex(output_data, output_len+DES_KEY_SIZE, output);
+	COST_END(4);
+    COST_ACCUM(cost_time,4);
 
 	// Free
 	free(output_data);	
@@ -180,10 +195,13 @@ void des_encrypt(const unsigned char* input_plain_text, size_t input_len, char**
 		return NULL;
 	}
 
+	COST_START(0);
 	// Generate main key
 	unsigned char des_key [DES_KEY_SIZE];
 	//memset(des_key,0,DES_KEY_SIZE);
 	generate_key(des_key);
+	COST_END(0);
+    COST_ACCUM(cost_time,0);
 
 	des_encrypt_with_key(des_key,input_plain_text,input_len,output);
 }

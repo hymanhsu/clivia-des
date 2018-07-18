@@ -9,6 +9,8 @@
 #include <sys/time.h>
 
 
+extern clock_t cost_time [];
+
 void test_perf(int argc, char** argv){
     struct timeval start;
     struct timeval end;
@@ -57,7 +59,12 @@ void test_perf(int argc, char** argv){
     long time_use = (end.tv_sec-start.tv_sec)*1000000+(end.tv_usec-start.tv_usec);
     printf("Batch size is %d\n",totalCount);
     printf("time_use is %ld micro seconds\n",time_use);
-    printf("COST PER ENCRYPT is %ld micro seconds\n",time_use/totalCount);
+    printf("COST PER ENCRYPT&DECRYPT is %ld micro seconds\n",time_use/totalCount);
+
+    for(int i=0; i<10; ++i){
+        printf("%d elapsed time (clocks) : %u \n", i, cost_time[i] );
+    }
+
 }
 
 void test_stability(){
