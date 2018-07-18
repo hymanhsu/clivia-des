@@ -71,3 +71,12 @@ target_link_libraries(test_perf
 )
 
 
+set (TEST_FILE_SOURCES 
+        ${PROJECT_SOURCE_DIR}/tools.c
+        ${PROJECT_SOURCE_DIR}/test_file.c
+        )
+
+add_executable(test_file ${TEST_FILE_SOURCES})
+target_link_libraries(test_file 
+    cdes_static
+)
