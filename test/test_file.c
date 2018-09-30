@@ -1,5 +1,6 @@
 #include "cdes/hex.h"
 #include "cdes/encrypt.h"
+#include "cdes/buffer.h"
 #include "tools.h"
 
 #include <stdio.h>
@@ -7,6 +8,7 @@
 #include <stdlib.h>
 #include <time.h>
 
+char global_mode = 'e';
 
 int main(int argc, char** argv){
 
@@ -14,13 +16,20 @@ int main(int argc, char** argv){
 	srand (iseed);
 
     if(argc < 4){
-        printf("test_file <-e|-d> <encrypted file> <decrypted file>\n");
+        printf("Options: <-e|-d> <input file> <output file>\n");
         exit(1);
     }
 
     char * mode = argv[1];
     char * input_file = argv[2];
     char * output_file = argv[3];
+
+    if(strcmp("-d",mode) == 0){
+        global_mode = 'd';
+    }
+    if(strcmp("-e",mode) == 0){
+        global_mode = 'e';
+    }
 
     FILE *input_fp; 
     if((input_fp = fopen(input_file,"r")) == NULL){
@@ -36,18 +45,48 @@ int main(int argc, char** argv){
     }
     printf("output file : %s\n",output_file);
 
-    char StrLine[4096] = {0};
+    time_t t_start, t_end;
+    t_start = time(NULL);
+    char StrLine[10240] = {0};
+    buffer * longLineBuf = NULL;
+    int count = 0;
     while (!feof(input_fp)) 
     { 
-        fgets(StrLine,4095,input_fp);
-        //printf("[%s]\n",StrLine);
-        int i = strlen(StrLine); //去掉回车
-        if(StrLine[i-1]=='\n'){
-            StrLine[i-1]=0;
+        if(!fgets(StrLine,10240,input_fp)){
+            break;
         }
-        if(strcmp("-d",mode) == 0){
+        int i = strlen(StrLine);
+        if(StrLine[i-1] == '\n'){
+            StrLine[i-1] = 0;
+        }else{
+            //printf("too long , exit\n");
+            //exit(0);
+            //这行太长了，10k还没有读完一行，只能上buffer了
+            longLineBuf = buffer_init();
+            buffer_append_string(longLineBuf, StrLine);
+            do{
+                fgets(StrLine,10240,input_fp);
+                i = strlen(StrLine); 
+                if(StrLine[i-1] == '\n'){
+                    StrLine[i-1] = 0;
+                    buffer_append_string(longLineBuf, StrLine);
+                    break;
+                }else{
+                    buffer_append_string(longLineBuf, StrLine);
+                }
+            }while(1);
+        }
+        count++;
+        //printf(">> %d, %d, {{%s}}\n",count,i,StrLine);
+        char * ptr = NULL;
+        if(longLineBuf != NULL){
+            ptr = longLineBuf->ptr;
+        }else{
+            ptr = StrLine;
+        }
+        if(global_mode == 'd'){
             char * plainText = NULL;
-            des_decrypt(StrLine,&plainText);
+            des_decrypt(ptr,&plainText);
             if(plainText){
                 fprintf(output_fp,"%s\n",plainText);
             }
@@ -55,9 +94,9 @@ int main(int argc, char** argv){
                 free(plainText);
             }
         }
-        if(strcmp("-e",mode) == 0){
+        if(global_mode == 'e'){
             char * cypherText = NULL;
-            des_encrypt(StrLine,strlen(StrLine),&cypherText);
+            des_encrypt(ptr,strlen(ptr),&cypherText);
             if(cypherText){
                 fprintf(output_fp,"%s\n",cypherText);
             }
@@ -65,10 +104,17 @@ int main(int argc, char** argv){
                 free(cypherText);
             }
         }
+        if(longLineBuf != NULL){
+            buffer_free(longLineBuf);
+            longLineBuf = NULL;
+        }
     } 
 
     fclose(input_fp);
     fclose(output_fp);
+
+    t_end = time(NULL);
+    printf("cost time: %.0f s\n", difftime(t_end,t_start)) ;
 
     return 0;
 }

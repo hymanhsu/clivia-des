@@ -37,7 +37,7 @@ static unsigned char extract_byte(unsigned char* source_bytes, size_t source_len
 void hide_key(unsigned char* source_bytes, size_t source_len, unsigned char* des_key, size_t des_key_len)
 {
 	if(source_len < 10){
-		printf("source string length < 10! exit when hide_key()\n");
+		printf("source string length %d < 10! exit when hide_key()\n",source_len);
 		exit(3);
 	}
 	print_hexstr("source_bytes",source_bytes, source_len);
@@ -67,7 +67,7 @@ void hide_key(unsigned char* source_bytes, size_t source_len, unsigned char* des
 void restore_key(unsigned char* source_bytes, size_t source_len, unsigned char* des_key, size_t des_key_len)
 {
 	if(source_len < 10){
-		printf("source string length < 10! exit when restore_key()\n");
+		printf("source string length %d < 10! exit when restore_key()\n",source_len);
 		exit(3);
 	}
 	print_hexstr("source_bytes",source_bytes, source_len);

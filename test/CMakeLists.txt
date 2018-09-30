@@ -26,6 +26,7 @@ else()
     add_definitions(-O3)
 endif()
 
+find_package(Threads)
 
 set (TEST_HEX_SOURCES 
         ${PROJECT_SOURCE_DIR}/tools.c
@@ -80,3 +81,18 @@ add_executable(test_file ${TEST_FILE_SOURCES})
 target_link_libraries(test_file 
     cdes_static
 )
+
+
+set (CECT_SOURCES 
+        ${PROJECT_SOURCE_DIR}/tools.c
+        ${PROJECT_SOURCE_DIR}/cect.c
+        )
+
+add_executable(cect ${CECT_SOURCES})
+target_link_libraries(cect 
+    ${CMAKE_THREAD_LIBS_INIT} 
+)
+target_link_libraries(cect 
+    cdes_static
+)
+

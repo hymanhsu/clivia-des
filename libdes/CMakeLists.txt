@@ -10,6 +10,7 @@ set(SOURCES
         ${PROJECT_SOURCE_DIR}/src/des.c
         ${PROJECT_SOURCE_DIR}/src/encrypt.c
         ${PROJECT_SOURCE_DIR}/src/helper.c
+        ${PROJECT_SOURCE_DIR}/src/buffer.c
         )
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -pedantic -Wall -Wextra -Wno-unused-parameter")
@@ -28,7 +29,7 @@ else()
     add_definitions(-Wstrict-aliasing)
     add_definitions(-std=c99)
     add_definitions(-fPIC)
-	add_definitions(-g)
+    add_definitions(-g)
     add_definitions(-O3)
 endif()
 
