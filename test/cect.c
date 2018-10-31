@@ -8,12 +8,17 @@
 #include <stdlib.h>
 #include <time.h>
 #include <unistd.h>
+#include <errno.h>
 
 #include <pthread.h>
 #include <getopt.h>
 
+#define BUFFER_SIZE 102400
+
 char global_mode = 'e';
 int verbose = 0;
+int parallel = 20;
+int batchSize = 1000000;
 
 /*******************list*********************/
 typedef struct node {
@@ -127,9 +132,10 @@ void* worker_func(void *arg){
             pthread_cond_wait(&cxt->cond,&cxt->mutex);
         }
         if( list_empty(&cxt->input_list) ){
-            if(verbose) printf("-- worker %d have no data to handle\n",cxt->index);
+            if(verbose) printf("-- worker %d have no data to handle, set flag=1\n",cxt->index);
+            cxt->flag ++;
             pthread_mutex_unlock(&cxt->mutex); 
-            break;
+            continue;  //wait for the following data
         }
         count++;
         NODE* node = list_remove_first(&cxt->input_list);
@@ -152,7 +158,7 @@ void* worker_func(void *arg){
         pthread_mutex_unlock(&cxt->mutex); 
         //sleep(1);
     }
-    cxt->flag = 1;
+    
     if(verbose) printf("++ worker %d finish\n",cxt->index);
 }
 
@@ -184,7 +190,7 @@ int main(int argc, char** argv){
     t_start = time(NULL);
 
     if(argc < 5){
-        printf("Options: [-dv] -p <parallel> -i <input file> -o <output file>\n");
+        printf("Options: [-dv] [-b <batch size>] -p <parallel> -i <input file> -o <output file>\n");
         exit(1);
     }
 
@@ -192,9 +198,10 @@ int main(int argc, char** argv){
     char * mode = NULL;
     char * input_file = NULL;
     char * output_file = NULL;
+    char * batch_size = NULL;
 
     int option_index = 0;
-    while (( option_index = getopt(argc, argv, "p:i:o:dv")) != -1){
+    while (( option_index = getopt(argc, argv, "p:i:o:d:bv")) != -1){
         switch (option_index) {
             case 'p':
                 parallel_str = optarg;
@@ -205,6 +212,9 @@ int main(int argc, char** argv){
             case 'o':
                 output_file = optarg;
                 break;
+            case 'b':
+                batch_size = optarg;
+                break;
             case 'd':
                 global_mode = 'd';
                 break;
@@ -212,12 +222,18 @@ int main(int argc, char** argv){
                 verbose = 1;
                 break;
             default:
-                printf("Options: [-d] -p <parallel> -i <input file> -o <output file>\n");
+                printf("Options: [-dv] [-b <batch size>] -p <parallel> -i <input file> -o <output file>\n");
                 exit(1);
         }
     }
 
-    int parallel = atoi(parallel_str);
+    if(batch_size){
+        batchSize = atoi(batch_size);
+    }
+    if(parallel_str){
+        parallel = atoi(parallel_str);
+    }
+    
     ThreadContext * context = (ThreadContext *)malloc( parallel * sizeof(ThreadContext) );
     ThreadContext * contextPtr = NULL;
     for(int i=0; i<parallel; ++i){
@@ -236,25 +252,33 @@ int main(int argc, char** argv){
     }
 
     FILE *input_fp; 
+    if(verbose) printf("input file : [%s]\n",input_file);
     if((input_fp = fopen(input_file,"r")) == NULL){
         perror("open input file failed");
         exit(1);
     }
-    if(verbose) printf("input file : %s\n",input_file);
-
+    
     FILE *output_fp; 
+    if(verbose) printf("output file : [%s]\n",output_file);
     if((output_fp = fopen(output_file,"w")) == NULL){
         perror("open output file failed");
         exit(1);
     }
-    if(verbose) printf("output file : %s\n",output_file);
 
+    char StrLine[BUFFER_SIZE] = {0};
+    int batchIndex = 0;
+
+BATCH_LOOP:
+    batchIndex++;
+    if(verbose) printf("--------------begin to handle batch data %d--------------\n", batchIndex);
     int count = 0;
-    char StrLine[10240] = {0};
     buffer * longLineBuf = NULL;
     while (!feof(input_fp)) 
     {
-        if(!fgets(StrLine,10240,input_fp)){
+        if( count > batchSize ){
+            break;
+        }
+        if( !fgets(StrLine,BUFFER_SIZE,input_fp) ){
             break;
         }
         int i = strlen(StrLine); 
@@ -268,7 +292,7 @@ int main(int argc, char** argv){
             longLineBuf = buffer_init();
             buffer_append_string(longLineBuf, StrLine);
             do{
-                fgets(StrLine,10240,input_fp);
+                fgets(StrLine,BUFFER_SIZE,input_fp);
                 i = strlen(StrLine); 
                 if(StrLine[i-1] == '\n'){
                     StrLine[i-1] = 0;
@@ -296,7 +320,9 @@ int main(int argc, char** argv){
         pthread_cond_signal(&contextPtr->cond);
         pthread_mutex_unlock(&contextPtr->mutex);
     } 
-    fclose(input_fp);
+    if(count == 0){
+        goto COMPLETE;
+    }
 
     //通知每个工作线程，数据发送完毕(可能这种做法是没用的)
     for(int i=0; i<parallel; ++i){
@@ -308,17 +334,27 @@ int main(int argc, char** argv){
 
     //检查各个线程是否已经工作完毕
     if(verbose) printf("begin to check if or not finish\n");
+    int finish = 0;
+    int * indexArray = (int *)malloc( sizeof(int) * parallel );
+    int ind;
+    for(ind=0; ind < parallel; ind++) {
+        indexArray[ind] = 0;
+    }
     while(1){
-        int finish = 0;
         for(int i=0; i<parallel; ++i){
             contextPtr = context + i;
+            if( indexArray[i] == 1 ){
+                continue;
+            }
             pthread_mutex_lock(&contextPtr->mutex);
-            if( list_empty(&contextPtr->input_list) ){
-                if(contextPtr->flag == 0){
-                    pthread_cond_signal(&contextPtr->cond);
-                }else{
-                    finish++;
-                }
+            if(contextPtr->flag == 0){
+                //工作线程还没有处理完
+                pthread_cond_signal(&contextPtr->cond);
+            }else{
+                //工作线程处理完了
+                finish++;
+                contextPtr->flag = 0;  //把标志改回未处理完
+                indexArray[i] = 1;   //下次不再检查这个线程的标记了
             }
             pthread_mutex_unlock(&contextPtr->mutex);
         }
@@ -326,10 +362,11 @@ int main(int argc, char** argv){
             if(verbose) printf("!!!handle finish\n");
             break;
         }else{
-            if(verbose) printf("!!handle not finish\n");
+            if(verbose) printf("!!handle not finish, parallel = %d, finish = %d\n",parallel,finish);
             sleep(1);
         }
     }
+    free(indexArray);
 
     //遍历每个工作线程的输出队列，输出到文件
     if(verbose) printf("begin to output\n");
@@ -351,6 +388,14 @@ int main(int argc, char** argv){
             break;
         }
     }
+    fflush(output_fp);
+    goto BATCH_LOOP; //继续处理下一个批次的数据
+
+COMPLETE:
+    //关闭输入文件
+    fclose(input_fp);
+
+    //关闭输出文件
     fclose(output_fp);
     if(verbose) printf("output finish\n");
 
