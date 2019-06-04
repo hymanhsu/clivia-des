@@ -9,6 +9,6 @@ MESSAGE(STATUS "EXECUTABLE_OUTPUT_PATH: ${EXECUTABLE_OUTPUT_PATH}")
 
 
 add_subdirectory(libdes)
-add_subdirectory(ext_jni)
-add_subdirectory(ext_python)
+#add_subdirectory(ext_jni)
+#add_subdirectory(ext_python)
 add_subdirectory(test)

@@ -201,7 +201,7 @@ int main(int argc, char** argv){
     char * batch_size = NULL;
 
     int option_index = 0;
-    while (( option_index = getopt(argc, argv, "p:i:o:d:bv")) != -1){
+    while (( option_index = getopt(argc, argv, "p:i:o:b:dv")) != -1){
         switch (option_index) {
             case 'p':
                 parallel_str = optarg;
